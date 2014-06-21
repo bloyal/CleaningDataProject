@@ -1,19 +1,37 @@
-paths <- c(
-        "subject_test" = "C:\\Users\\BBLOYA\\Documents\\GitHub\\CleaningDataProject\\UCI HAR Dataset\\test\\subject_test.txt",
-        "X_test" = "C:\\Users\\BBLOYA\\Documents\\GitHub\\CleaningDataProject\\UCI HAR Dataset\\test\\X_test.txt",
-        "y_test" = "C:\\Users\\BBLOYA\\Documents\\GitHub\\CleaningDataProject\\UCI HAR Dataset\\test\\y_test.txt",
-        "subject_train" = "C:\\Users\\BBLOYA\\Documents\\GitHub\\CleaningDataProject\\UCI HAR Dataset\\train\\subject_train.txt",
-        "X_train" = "C:\\Users\\BBLOYA\\Documents\\GitHub\\CleaningDataProject\\UCI HAR Dataset\\train\\X_train.txt",
-        "y_train" = "C:\\Users\\BBLOYA\\Documents\\GitHub\\CleaningDataProject\\UCI HAR Dataset\\train\\y_train.txt",
-        "features" = "C:\\Users\\BBLOYA\\Documents\\GitHub\\CleaningDataProject\\UCI HAR Dataset\\features.txt",
-        "activities" = "C:\\Users\\BBLOYA\\Documents\\GitHub\\CleaningDataProject\\UCI HAR Dataset\\activity_labels.txt"
-        )
-
-
+run_analysis <- function(){
+        
+        #Hard-coded data file paths
+        paths <- c(
+                "subject_test" = "UCI HAR Dataset/test/subject_test.txt",
+                "X_test" = "UCI HAR Dataset/test/X_test.txt",
+                "y_test" = "UCI HAR Dataset/test/y_test.txt",
+                "subject_train" = "UCI HAR Dataset/train/subject_train.txt",
+                "X_train" = "UCI HAR Dataset/train/X_train.txt",
+                "y_train" = "UCI HAR Dataset/train/y_train.txt",
+                "features" = "UCI HAR Dataset/features.txt",
+                "activities" = "UCI HAR Dataset/activity_labels.txt"
+                )
+        
+        #load the data file contents into memory
+        rawData <- loadData(paths)
+        #extract the 561 features names from features.txt
+        featureNames <- getFeatureNames(paths["features"])
+        #extract the activity names and keys from activity_labels.txt
+        activityLookup <- getActivityNames(paths["activities"])
+        #combine the X and y data for the test and training set into a single data frame
+        combinedData <- combineDataSet(rawData, featureNames)
+        #limit the data to onle the mean and standard deviation feature measurements
+        meanAndStds <- selectMeanAndStdData(combinedData)
+        #convert the activity ids into descriptions (WALKING, etc)
+        labeledData <- labelActivities(meanAndStds, activityLookup)
+        #summarize the data into a single, mean value of each measurement for each subject-action combo
+        summarizeData(labeledData)
+}        
+        
 ## open files and load into a list of 6 data
 loadData <- function(paths){
 
-        rawData <- list(
+        list(
                 "subjectTest" =  read.table(paths["subject_test"]),
                 "XTest" = read.table(paths["X_test"]),
                 "yTest" = read.table(paths["y_test"]),
@@ -37,7 +55,7 @@ getActivityNames <- function(activityPath){
 }
 
 ##combine subject, X, and y tables into single data frame
-createDataSet <- function(rawDataList, features){
+combineDataSet <- function(rawDataList, features){
         testSet<- cbind(rawDataList[["subjectTest"]],rawDataList[["yTest"]],rawDataList[["XTest"]])
         colnames(testSet) <- c("subjects","activities",features)
         trainSet<- cbind(rawDataList[["subjectTrain"]],rawDataList[["yTrain"]],rawDataList[["XTrain"]])
@@ -58,6 +76,9 @@ labelActivities <- function(dataSet,activityLookup){
 
 ##create summarized, tidy data set with the average values of each variable by activity and subject
 summarizeData <- function(labeledDataSet){
-        #this isn't done!
-        by(labeled[,c(3:68)],labeled$activityName,colMeans, simplify=TRUE)        
+        ##melt labeled data set into "long form", so that each row lists the variable name and value
+        meltData <- melt(labeledData, id=c("subjects", "activityName"), measure.vars=names(labeledData)[3:68])
+        
+        ##cast melted data back into "wide form" so that each variable name is a column with the mean as value
+        dcast(meltData, subjects + activityName ~ variable, mean)
 }
