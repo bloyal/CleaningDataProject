@@ -26,6 +26,8 @@ run_analysis <- function(){
         labeledData <- labelActivities(meanAndStds, activityLookup)
         #summarize the data into a single, mean value of each measurement for each subject-action combo
         summarizeData(labeledData)
+        #export data into .csv file
+        write.csv(data,"summarizedData.csv")
 }        
         
 ## open files and load into a list of 6 data
